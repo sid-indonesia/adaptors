@@ -403,6 +403,37 @@ export function request(params) {
   };
 }
 
+export function checkConfigurationQontak() {
+  return state => {
+    fs.readFile(__filename, 'utf8', (err, data) => {
+      if (err) throw err;
+
+      const regex = /configuration\.qontak\.[^\s,;)}]+/g;
+      const matches = data.match(regex);
+
+      const sortedMatches = matches.sort();
+      const uniqueMatches = sortedMatches.filter((value, index, self) => {
+        return self.indexOf(value) === index;
+      });
+
+      const undefinedConfigProperties = uniqueMatches.filter(key => {
+        const keyArray = key.split('.');
+        let value = state;
+        keyArray.forEach(k => {
+          if (value !== undefined) {
+            value = value[k];
+          }
+        });
+        return value === undefined;
+      });
+
+      if (undefinedConfigProperties.length > 0) {
+        throw new Error('There are undefined config properties: ' + undefinedConfigProperties);
+      }
+    });
+  };
+}
+
 function convertToCSVString(arr) {
   const array = [Object.keys(arr[0])].concat(arr);
 
