@@ -403,12 +403,20 @@ export function request(params) {
   };
 }
 
+/**
+ * Check for undefined configuration properties related to Qontak
+ * @public
+ * @example
+ *  checkConfigurationQontak();
+ * @function
+ * @returns {Operation}
+ */
 export function checkConfigurationQontak() {
   return state => {
     fs.readFile(__filename, 'utf8', (err, data) => {
       if (err) throw err;
 
-      const regex = /configuration\.qontak\.[^\s,;)}]+/g;
+      const regex = /configuration\.qontak\.[^\s,;)}[]+/g;
       const matches = data.match(regex);
 
       const sortedMatches = matches.sort();
@@ -434,8 +442,21 @@ export function checkConfigurationQontak() {
   };
 }
 
-function convertToCSVString(arr) {
-  const array = [Object.keys(arr[0])].concat(arr);
+/**
+ * Convert a JSON Array into a CSV String
+ * @example
+ *  convertToCSVString(state.response.body.rows)
+ * @function
+ * @param {array} arr - Array to be converted
+ * @returns {String}
+ */
+export function convertToCSVString(arr, useHeader = true) {
+  let array;
+  if (useHeader) {
+    array = [Object.keys(arr[0])].concat(arr);
+  } else {
+    array = arr;
+  }
 
   return array.map(it => {
     return Object.values(it).toString();

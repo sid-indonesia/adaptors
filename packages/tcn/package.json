@@ -1,6 +1,6 @@
 {
   "name": "@sid-indonesia/language-tcn",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A TCN APIs language package for use with Open Function",
   "homepage": "https://docs.openfn.org",
   "repository": {
