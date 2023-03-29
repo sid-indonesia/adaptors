@@ -403,6 +403,28 @@ export function request(params) {
   };
 }
 
+const defaultState = {
+  configuration: {
+    qontak: {
+      broadcastBulkAPI: {
+        maxRequests: 1,
+        maxRequestsWindowMS: 300000,
+        numRequestsParallel: 1,
+        extraWaitMS: 6000,
+      },
+      contactListAPI: {
+        initialDelayMS: 3000,
+        maxRetries: 60,
+        delayMS: 60000,
+        maxRequests: 1,
+        maxRequestsWindowMS: 300000,
+        numRequestsParallel: 1,
+      },
+      retryAfterHeader: "x-ratelimit-reset"
+    }
+  }
+};
+
 /**
  * Check for undefined configuration properties related to Qontak
  * @public
@@ -416,7 +438,7 @@ export function checkConfigurationQontak() {
     fs.readFile(__filename, 'utf8', (err, data) => {
       if (err) throw err;
 
-      const regex = /configuration\.qontak\.[^\s,;)}[]+/g;
+      const regex = /configuration\.qontak\.[^\s\][,;)}]+/g;
       const matches = data.match(regex);
 
       const sortedMatches = matches.sort();
@@ -427,18 +449,23 @@ export function checkConfigurationQontak() {
       const undefinedConfigProperties = uniqueMatches.filter(key => {
         const keyArray = key.split('.');
         let value = state;
+        let defaultValue = defaultState;
         keyArray.forEach(k => {
+          if (defaultValue !== undefined) {
+            defaultValue = defaultValue[k];
+          }
           if (value !== undefined) {
             value = value[k];
           }
         });
-        return value === undefined;
+        return defaultValue === undefined && value === undefined;
       });
 
       if (undefinedConfigProperties.length > 0) {
         throw new Error('There are undefined config properties: ' + undefinedConfigProperties);
       }
     });
+    return state;
   };
 }
 
@@ -532,8 +559,8 @@ function getMillisToSleep(retryHeaderString) {
 async function fetchAndRetryIfNecessary(callAPI, state, index, attempt = 0) {
   const finalState = await callAPI(attempt);
   if (finalState.response.status === 429) {
-    const retryAfter = finalState.response.headers[state.configuration.retryAfterHeader ? state.configuration.retryAfterHeader : "x-ratelimit-reset"]; // Qontak set this header
-    const millisToSleep = getMillisToSleep(retryAfter) + (state.configuration.qontak.broadcastBulkAPI.extraWaitMS ? state.configuration.qontak.broadcastBulkAPI.extraWaitMS : 6000); // 6000ms is the sweet spot for Qontak
+    const retryAfter = finalState.response.headers[state.configuration.qontak.retryAfterHeader ?? defaultState.configuration.qontak.retryAfterHeader]; // Qontak set this header
+    const millisToSleep = getMillisToSleep(retryAfter) + (state.configuration.qontak.broadcastBulkAPI?.extraWaitMS ?? defaultState.configuration.qontak.broadcastBulkAPI.extraWaitMS); // 6000ms is the sweet spot for Qontak
     console.log('❗ Retrying:  ', index, `attempt:${attempt + 1}`, 'at', retryAfter, 'sleep for', millisToSleep, 'ms');
     await sleep(millisToSleep);
     return fetchAndRetryIfNecessary(callAPI, state, index, attempt + 1);
@@ -568,9 +595,9 @@ async function fetchAndRetryIfNecessary(callAPI, state, index, attempt = 0) {
 export async function qontakBroadcastBulk(state, requestBody, jobName) {
   // Give Qontak some time to process the contact list (because the API is
   // asynchronous and currently there is no "Create contact list synchronously")
-  await sleep(state.configuration.qontak.contactListAPI.initialDelayMS);
+  await sleep(state.configuration.qontak.contactListAPI?.initialDelayMS ?? defaultState.configuration.qontak.contactListAPI.initialDelayMS);
 
-  for (let i = 0; i < state.configuration.qontak.contactListAPI.maxRetries; i++) {
+  for (let i = 0; i < state.configuration.qontak.contactListAPI?.maxRetries ?? defaultState.configuration.qontak.contactListAPI.maxRetries; i++) {
     try {
       // Try retrieve Contact List by ID until `progress` equalTo `success`
       const contactListFinalState = await get(`${state.configuration.qontak.baseUrl}/v1/contacts/contact_lists/${state.contactListId}`, {
@@ -583,7 +610,7 @@ export async function qontakBroadcastBulk(state, requestBody, jobName) {
         if ("success" === contactListFinalState.data.data.progress.toLowerCase()) {
           break;
         } else if ("processing" === contactListFinalState.data.data.progress.toLowerCase()) {
-          await sleep(state.configuration.qontak.contactListAPI.delayMS);
+          await sleep(state.configuration.qontak.contactListAPI?.delayMS ?? defaultState.configuration.qontak.contactListAPI.delayMS);
           continue;
         }
       }
@@ -600,8 +627,8 @@ export async function qontakBroadcastBulk(state, requestBody, jobName) {
   }
 
   // Broadcast Bulk with retries if 429
-  const maxRequests = state.configuration.qontak.broadcastBulkAPI.maxRequests;
-  const maxRequestWindowMS = state.configuration.qontak.broadcastBulkAPI.maxRequestsWindowMS;
+  const maxRequests = state.configuration.qontak.broadcastBulkAPI?.maxRequests ?? defaultState.configuration.qontak.broadcastBulkAPI.maxRequests;
+  const maxRequestWindowMS = state.configuration.qontak.broadcastBulkAPI?.maxRequestsWindowMS ?? defaultState.configuration.qontak.broadcastBulkAPI.maxRequestsWindowMS;
   const limiter = new RateLimiter(maxRequests, maxRequestWindowMS, false);
   const tokenBucket = new LimiterLibraryRateLimiter({
     maxRequests,
@@ -609,7 +636,7 @@ export async function qontakBroadcastBulk(state, requestBody, jobName) {
     limiter
   });
 
-  const promises = getArrayOfLength(state.configuration.qontak.broadcastBulkAPI.numRequestsParallel).map(async (index) => (
+  const promises = getArrayOfLength(state.configuration.qontak.broadcastBulkAPI?.numRequestsParallel ?? defaultState.configuration.qontak.broadcastBulkAPI.numRequestsParallel).map(async (index) => (
     fetchAndRetryIfNecessary(async (attempt = 0) => (
       tokenBucket.acquireToken(() => callTheAPI(
         post(`${state.configuration.qontak.baseUrl}/v1/broadcasts/whatsapp`, {
@@ -654,8 +681,8 @@ export async function qontakCreateContactList(state, csvAbsoluteFileName, jobNam
     activateQontakAuthResponseInterceptor()(state);
 
     // Hit Qontak's API "Create contact list asynchronously"
-    const maxRequests = state.configuration.qontak.contactListAPI.maxRequests;
-    const maxRequestWindowMS = state.configuration.qontak.contactListAPI.maxRequestsWindowMS;
+    const maxRequests = state.configuration.qontak.contactListAPI?.maxRequests ?? defaultState.configuration.qontak.contactListAPI.maxRequests;
+    const maxRequestWindowMS = state.configuration.qontak.contactListAPI?.maxRequestsWindowMS ?? defaultState.configuration.qontak.contactListAPI.maxRequestsWindowMS;
     const limiter = new RateLimiter(maxRequests, maxRequestWindowMS, false);
     const tokenBucket = new LimiterLibraryRateLimiter({
       maxRequests,
@@ -683,13 +710,14 @@ export async function qontakCreateContactList(state, csvAbsoluteFileName, jobNam
       )(state2);
     }
 
-    const promises = getArrayOfLength(state.configuration.qontak.contactListAPI.numRequestsParallel).map(async (index) => (
-      fetchAndRetryIfNecessary(async (attempt = 0) => (
-        tokenBucket.acquireToken(() =>
-          callTheAPI(createFormDataThenPost, "Create Contact List", state, index, attempt)
-        )
-      ), state, 0, index)
-    ));
+    const promises = getArrayOfLength(state.configuration.qontak.contactListAPI?.numRequestsParallel ?? defaultState.configuration.qontak.contactListAPI.numRequestsParallel)
+      .map(async (index) => (
+        fetchAndRetryIfNecessary(async (attempt = 0) => (
+          tokenBucket.acquireToken(() =>
+            callTheAPI(createFormDataThenPost, "Create Contact List", state, index, attempt)
+          )
+        ), state, 0, index)
+      ));
 
     const finalStates = await Promise.all(promises);
     return finalStates[0];
