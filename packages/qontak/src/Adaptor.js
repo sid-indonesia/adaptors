@@ -426,7 +426,7 @@ const defaultState = {
 };
 
 /**
- * Check for undefined configuration properties related to Qontak
+ * Check for undefined configuration properties related to Qontak, for debugging
  * @public
  * @example
  *  checkConfigurationQontak();

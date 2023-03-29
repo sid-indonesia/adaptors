@@ -403,7 +403,7 @@ export function request(params) {
 }
 
 /**
- * Check for undefined configuration properties related to TCN
+ * Check for undefined configuration properties related to TCN, for debugging
  * @public
  * @example
  *  checkConfigurationTCN();
@@ -415,7 +415,7 @@ export function checkConfigurationTCN() {
     fs.readFile(__filename, 'utf8', (err, data) => {
       if (err) throw err;
 
-      const regex = /configuration\.tcn\.[^\s,;)}[]+/g;
+      const regex = /configuration\.tcn\.[^\s\][,;)}]+/g;
       const matches = data.match(regex);
 
       const sortedMatches = matches.sort();
@@ -438,6 +438,7 @@ export function checkConfigurationTCN() {
         throw new Error('There are undefined config properties: ' + undefinedConfigProperties);
       }
     });
+    return state;
   };
 }
 
