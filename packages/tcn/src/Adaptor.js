@@ -402,6 +402,46 @@ export function request(params) {
   };
 }
 
+/**
+ * Check for undefined configuration properties related to TCN, for debugging
+ * @public
+ * @example
+ *  checkConfigurationTCN();
+ * @function
+ * @returns {Operation}
+ */
+export function checkConfigurationTCN() {
+  return state => {
+    fs.readFile(__filename, 'utf8', (err, data) => {
+      if (err) throw err;
+
+      const regex = /configuration\.tcn\.[^\s\][,;)}]+/g;
+      const matches = data.match(regex);
+
+      const sortedMatches = matches.sort();
+      const uniqueMatches = sortedMatches.filter((value, index, self) => {
+        return self.indexOf(value) === index;
+      });
+
+      const undefinedConfigProperties = uniqueMatches.filter(key => {
+        const keyArray = key.split('.');
+        let value = state;
+        keyArray.forEach(k => {
+          if (value !== undefined) {
+            value = value[k];
+          }
+        });
+        return value === undefined;
+      });
+
+      if (undefinedConfigProperties.length > 0) {
+        throw new Error('There are undefined config properties: ' + undefinedConfigProperties);
+      }
+    });
+    return state;
+  };
+}
+
 function createStringPayloadForImportScheduleAPI(state, params) {
   return `login.username=${state.configuration.tcn.username}\n` +
     `login.password=${state.configuration.tcn.password}\n` +

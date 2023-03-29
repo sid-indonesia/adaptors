@@ -422,6 +422,38 @@
       "valid": true
     },
     {
+      "name": "checkConfigurationQontak",
+      "params": [],
+      "docs": {
+        "description": "Check for undefined configuration properties related to Qontak",
+        "tags": [
+          {
+            "title": "public",
+            "description": null,
+            "type": null
+          },
+          {
+            "title": "example",
+            "description": "checkConfigurationQontak();"
+          },
+          {
+            "title": "function",
+            "description": null,
+            "name": null
+          },
+          {
+            "title": "returns",
+            "description": null,
+            "type": {
+              "type": "NameExpression",
+              "name": "Operation"
+            }
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
       "name": "qontakBroadcastBulk",
       "params": [
         "state",
