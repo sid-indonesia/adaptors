@@ -422,6 +422,38 @@
       "valid": true
     },
     {
+      "name": "checkConfigurationTCN",
+      "params": [],
+      "docs": {
+        "description": "Check for undefined configuration properties related to TCN, for debugging",
+        "tags": [
+          {
+            "title": "public",
+            "description": null,
+            "type": null
+          },
+          {
+            "title": "example",
+            "description": "checkConfigurationTCN();"
+          },
+          {
+            "title": "function",
+            "description": null,
+            "name": null
+          },
+          {
+            "title": "returns",
+            "description": null,
+            "type": {
+              "type": "NameExpression",
+              "name": "Operation"
+            }
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
       "name": "tcnImportScheduleAPI",
       "params": [
         "params",

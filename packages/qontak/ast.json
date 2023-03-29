@@ -425,7 +425,7 @@
       "name": "checkConfigurationQontak",
       "params": [],
       "docs": {
-        "description": "Check for undefined configuration properties related to Qontak",
+        "description": "Check for undefined configuration properties related to Qontak, for debugging",
         "tags": [
           {
             "title": "public",

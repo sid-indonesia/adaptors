@@ -467,6 +467,7 @@ function createImportSchedulePayloadFormData(payloadFilePath) {
  *  convertToCSVString(state.response.body.rows)
  * @function
  * @param {array} arr - Array to be converted
+ * @param {boolean} useHeader - Set to `true` for include header as first row. Defaults to `false`.
  * @returns {String}
  */
 export function convertToCSVString(arr, useHeader = false) {

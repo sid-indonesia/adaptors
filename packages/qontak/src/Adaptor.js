@@ -475,6 +475,7 @@ export function checkConfigurationQontak() {
  *  convertToCSVString(state.response.body.rows)
  * @function
  * @param {array} arr - Array to be converted
+ * @param {boolean} useHeader - Set to `false` for exclude header as first row. Defaults to `true`.
  * @returns {String}
  */
 export function convertToCSVString(arr, useHeader = true) {
